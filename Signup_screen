@@ -1,0 +1,278 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_overlays_app/constants/constants.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:validators/validators.dart';
+
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen>
+    with TickerProviderStateMixin {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
+  String? _name, _email;
+  TextEditingController nameController = TextEditingController();
+
+  TextEditingController emailController = TextEditingController();
+
+  TextEditingController passwordController = TextEditingController();
+
+  TextEditingController confirmPassController = TextEditingController();
+  Color? nameColor, emailColor, passColor, confirmPassColor;
+
+  AnimationController? animationController;
+  Animation<double>? animation;
+
+  @override
+  void initState() {
+    super.initState();
+    animationController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 1));
+    animation =
+        CurveTween(curve: Curves.fastOutSlowIn).animate(animationController!);
+  }
+
+  void _showOverlay(BuildContext context, {required String text}) async {
+    OverlayState? overlayState = Overlay.of(context);
+    OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(builder: (context) {
+      return Positioned(
+        left: MediaQuery.of(context).size.width * 0.1,
+        top: MediaQuery.of(context).size.height * 0.80,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Material(
+            child: FadeTransition(
+              opacity: animation!,
+              child: Container(
+                alignment: Alignment.center,
+                color: Colors.grey.shade200,
+                padding:
+                    EdgeInsets.all(MediaQuery.of(context).size.height * 0.02),
+                width: MediaQuery.of(context).size.width * 0.8,
+                height: MediaQuery.of(context).size.height * 0.06,
+                child: Text(
+                  text,
+                  style: const TextStyle(color: Colors.black),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+    animationController!.addListener(() {
+      overlayState!.setState(() {});
+    });
+    // inserting overlay entry
+    overlayState!.insert(overlayEntry);
+    animationController!.forward();
+    await Future.delayed(const Duration(seconds: 3))
+        .whenComplete(() => animationController!.reverse())
+        // removing overlay entry after stipulated time.
+        .whenComplete(() => overlayEntry.remove());
+  }
+
+  void _submitForm() {
+    setState(() {
+      _autoValidateMode = AutovalidateMode.always;
+    });
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
+
+    form.save();
+
+    Fluttertoast.showToast(msg: _name.toString() + _email.toString());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+          child: Padding(
+        padding: const EdgeInsets.all(
+          20.0,
+        ),
+        child: Form(
+          key: _formKey,
+          autovalidateMode: _autoValidateMode,
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  height: 40.0,
+                ),
+                const Text(
+                  'Create New Account',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.0),
+                ),
+                const SizedBox(
+                  height: 15.0,
+                ),
+                const Text(
+                  'Sign Up to get started',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.0),
+                ),
+                const SizedBox(
+                  height: 15.0,
+                ),
+                const FlutterLogo(
+                  size: 100,
+                ),
+                const SizedBox(
+                  height: 15.0,
+                ),
+                TextFormField(
+                  controller: nameController,
+                  keyboardType: TextInputType.name,
+                  textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (String? value) {
+                    if (value == null || value.trim().isEmpty) {
+                      nameColor = Colors.red;
+                    }
+                    if (value.toString().length <= 2) {
+                      nameColor = Colors.red;
+                    } else {
+                      nameColor = Colors.grey;
+                    }
+                    return null;
+                  },
+                  onSaved: (String? value) {
+                    _name = value;
+                  },
+                  decoration: kTextInputDecoration.copyWith(
+                      labelText: 'Full Name',
+                      prefixIcon: const Icon(Icons.person),
+                      suffixIcon: IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            _showOverlay(context,
+                                text:
+                                    'Name should have more than 2 characters');
+                          },
+                          icon: Icon(Icons.info, color: nameColor
+                              //change icon color according to form validation
+                              ))),
+                ),
+                const SizedBox(
+                  height: 15.0,
+                ),
+                TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  validator: (String? value) {
+                    if (value == null || value.trim().isEmpty) {
+                      emailColor = Colors.red;
+                    }
+                    if (!isEmail(value.toString())) {
+                      emailColor = Colors.red;
+                    }
+                    if (isEmail(value.toString())) {
+                      emailColor = Colors.blue;
+                    }
+                    return null;
+                  },
+                  onSaved: (String? value) {
+                    _email = value;
+                  },
+                  decoration: kTextInputDecoration.copyWith(
+                      labelText: 'Email Address',
+                      prefixIcon: const Icon(Icons.email),
+                      suffixIcon: IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            _showOverlay(context,
+                                text: 'Please Enter a valid Email address');
+                          },
+                          icon: Icon(Icons.info, color: emailColor
+                              //change icon color according to form validation
+                              ))),
+                ),
+                const SizedBox(
+                  height: 15.0,
+                ),
+                TextFormField(
+                  controller: passwordController,
+                  keyboardType: TextInputType.visiblePassword,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  obscureText: true,
+                  validator: (String? value) {
+                    if (value == null ||
+                        value.trim().isEmpty ||
+                        value.trim().length < 6) {
+                      passColor = Colors.red;
+                    } else if (value.trim().length >= 6) {
+                      passColor = Colors.grey;
+                    }
+                    return null;
+                  },
+                  decoration: kTextInputDecoration.copyWith(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            _showOverlay(context,
+                                text:
+                                    'Password must be more than 6 characters');
+                          },
+                          icon: Icon(Icons.info, color: passColor
+                              //change icon color according to form validation
+                              ))),
+                ),
+                const SizedBox(
+                  height: 15.0,
+                ),
+                TextFormField(
+                  controller: confirmPassController,
+                  keyboardType: TextInputType.visiblePassword,
+                  textInputAction: TextInputAction.next,
+                  obscureText: true,
+                  validator: (String? value) {
+                    if (passwordController.text != value) {
+                      confirmPassColor = Colors.red;
+                    } else if (passwordController.text == value) {
+                      confirmPassColor = Colors.grey;
+                    }
+                    return null;
+                  },
+                  decoration: kTextInputDecoration.copyWith(
+                      labelText: 'Confirm Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            _showOverlay(context,
+                                text: 'Passwords do not match');
+                          },
+                          icon: Icon(Icons.info, color: confirmPassColor
+                              //change icon color according to form validation
+                              ))),
+                ),
+                const SizedBox(
+                  height: 20.0,
+                ),
+                ElevatedButton(
+                    onPressed: () {
+                      _submitForm();
+                    },
+                    style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(10)),
+                    child: const Text(
+                      'Submit',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ]),
+        ),
+      )),
+    );
+  }
+}
